@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const SWF_FILE = "Madness Project Nexus Classic TRUE ONLINE COOP COMPLETE SYNC.swf?v=20260622-complete-sync-v12";
+  const SWF_FILE = "Madness Project Nexus Classic TRUE ONLINE COOP ADMIN SPELLS.swf?v=20260622-admin-spells-v1";
   window.RufflePlayer = window.RufflePlayer || {};
   window.RufflePlayer.config = {
     autoplay: "on",
@@ -39,7 +39,7 @@
   async function installNetworkShim() {
     if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
     try {
-      await navigator.serviceWorker.register("./sw.js?v=20260622-complete-sync-v12", { scope: "./" });
+      await navigator.serviceWorker.register("./sw.js?v=20260622-admin-spells-v1", { scope: "./" });
       await navigator.serviceWorker.ready;
       if (!navigator.serviceWorker.controller) {
         await new Promise((resolve) => {
