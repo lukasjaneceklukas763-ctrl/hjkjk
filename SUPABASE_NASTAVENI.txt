@@ -1,0 +1,12 @@
+SUPABASE NASTAVENÍ
+==================
+
+SQL KÓD NENÍ POTŘEBA.
+
+Projekt používá Supabase Realtime Broadcast a Presence, nikoli databázové tabulky.
+Stačí, aby:
+- Supabase projekt nebyl pozastavený,
+- Realtime služba byla dostupná,
+- config.js obsahoval správnou Project URL a veřejný anon/publishable key.
+
+Nevkládej service_role ani secret klíč.

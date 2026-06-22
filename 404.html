@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <title>Madness: Project Nexus Classic – Lukamer CO-OP</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+    body { display: grid; place-items: center; font-family: Impact, "Arial Narrow", Arial, sans-serif; }
+    button, input, select { font: inherit; }
+    #stage {
+      position: relative;
+      width: min(100vw, calc(100vh * 1.603773585));
+      height: min(100vh, calc(100vw / 1.603773585));
+      background: #000;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    #game, #rufflePlayer { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #rainCanvas {
+      position: absolute; inset: 0; z-index: 30; width: 100%; height: 100%;
+      pointer-events: none; opacity: 0; transition: opacity .45s ease; mix-blend-mode: screen;
+    }
+    #rainCanvas.active { opacity: .92; }
+    #arenaCopyright {
+      position: absolute; z-index: 40; right: 14px; bottom: 10px; pointer-events: none;
+      color: #d21313; font: 900 clamp(11px, 1.65vw, 17px)/1 Impact, "Arial Black", sans-serif;
+      letter-spacing: .8px; text-transform: uppercase;
+      text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 0 0 8px rgba(255,0,0,.75);
+      transform: skew(-7deg);
+    }
+    #arenaCopyright[hidden] { display: none; }
+
+    #coopHud {
+      position: absolute; z-index: 55; top: 8px; right: 9px; display: flex; align-items: center; gap: 6px;
+      min-height: 31px; padding: 4px 5px 4px 9px; border: 2px solid #5f0808;
+      background: linear-gradient(#292929, #101010); box-shadow: 0 0 0 1px #000, 0 5px 15px #000b;
+      transform: skew(-5deg); color: #ddd; letter-spacing: .7px; font-size: clamp(10px, 1.4vw, 14px);
+    }
+    #coopHud[hidden] { display: none; }
+    #coopHud > * { transform: skew(5deg); }
+    #coopHudRole { color: #e23232; }
+    #coopHudRoom { color: #fff; user-select: all; }
+    .hud-button {
+      border: 1px solid #6f6f6f; background: linear-gradient(#3a3a3a, #171717); color: #fff;
+      padding: 4px 8px; cursor: pointer; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .hud-button:hover { background: linear-gradient(#6f1212, #2a0606); border-color: #d64040; }
+    #adminMenuButton { border-color: #a20d0d; color: #ff4a4a; }
+    #adminMenuButton[hidden] { display: none; }
+
+    #siteDialog {
+      position: absolute; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 18px;
+      background: radial-gradient(circle at center, rgba(45,0,0,.26), rgba(0,0,0,.78));
+    }
+    #siteDialog[hidden] { display: none; }
+    #siteDialog[data-transient="true"] { pointer-events: none; align-items: start; padding-top: 17px; background: transparent; }
+    #siteDialog[data-transient="true"] .madness-window { width: min(590px, calc(100% - 24px)); }
+    #siteDialog[data-transient="true"] .madness-window-header,
+    #siteDialog[data-transient="true"] #siteDialogForm,
+    #siteDialog[data-transient="true"] #siteDialogActions { display: none; }
+    #siteDialog[data-transient="true"] #siteDialogMessage { min-height: 0; text-align: center; padding: 12px 18px; }
+
+    .madness-window {
+      width: min(520px, calc(100% - 22px)); color: #e7e7e7; border: 2px solid #650909;
+      background: linear-gradient(145deg, #282828, #0d0d0d 62%); box-shadow: 0 0 0 2px #000, 0 15px 45px #000;
+      clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    }
+    .madness-window-header {
+      display: flex; align-items: center; justify-content: space-between; min-height: 42px; padding: 7px 8px 7px 15px;
+      border-bottom: 2px solid #650909; background: linear-gradient(90deg, #3b0707, #171717 68%);
+    }
+    #siteDialogTitleText { color: #fff; font-size: clamp(18px, 3vw, 28px); letter-spacing: 1.2px; text-transform: uppercase; text-shadow: 2px 2px #000; }
+    #siteDialogClose {
+      width: 30px; height: 28px; border: 1px solid #7d2424; background: #160303; color: #e8e8e8; cursor: pointer;
+      font-family: Arial, sans-serif; font-size: 20px; line-height: 1;
+    }
+    #siteDialogClose:hover { background: #7c0d0d; }
+    #siteDialogMessage {
+      min-height: 78px; padding: 18px 20px 12px; color: #ddd; font-family: Arial, Helvetica, sans-serif;
+      font-size: clamp(13px, 1.8vw, 16px); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    #siteDialogForm { display: grid; gap: 8px; padding: 0 20px 15px; }
+    #siteDialogActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 13px 16px 16px; border-top: 1px solid #3d3d3d; }
+    .madness-label { color: #e64242; letter-spacing: 1px; font-size: 15px; }
+    .madness-input, .madness-select {
+      width: 100%; min-height: 40px; border: 2px solid #4b4b4b; outline: none; background: #080808; color: #fff;
+      padding: 8px 11px; font-family: Arial, Helvetica, sans-serif; font-weight: 700; font-size: 15px;
+    }
+    .madness-input:focus, .madness-select:focus { border-color: #bd1a1a; box-shadow: 0 0 0 2px #2d0505; }
+    .madness-button {
+      min-width: 105px; min-height: 38px; padding: 7px 14px; border: 2px solid #555; cursor: pointer;
+      background: linear-gradient(#3b3b3b, #171717); color: #fff; text-transform: uppercase; letter-spacing: .8px;
+      box-shadow: inset 0 0 0 1px #111; clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+    }
+    .madness-button:hover { filter: brightness(1.25); }
+    .madness-button.primary { border-color: #888; background: linear-gradient(#545454, #202020); }
+    .madness-button.danger { border-color: #a11212; background: linear-gradient(#8c1515, #2e0505); }
+    #siteDialog[data-kind="error"] .madness-window { border-color: #d11818; }
+    #siteDialog[data-kind="warn"] .madness-window { border-color: #a56c0b; }
+    #siteDialog[data-kind="admin"] .madness-window { border-color: #d31212; }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="config.js"></script>
+  <script defer src="coop-bridge.js?v=20260622-complete-sync-v12"></script>
+  <script defer src="boot.js?v=20260622-complete-sync-v12"></script>
+  <script defer src="rain.js?v=20260622-complete-sync-v12"></script>
+  <script defer src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+</head>
+<body>
+  <main id="stage" aria-label="Madness Project Nexus Classic">
+    <div id="game"></div>
+    <canvas id="rainCanvas" aria-hidden="true"></canvas>
+    <div id="arenaCopyright" hidden>Copyright claimed by Lukamer</div>
+
+    <aside id="coopHud" hidden>
+      <strong id="coopHudRole"></strong>
+      <span>ROOM</span>
+      <strong id="coopHudRoom"></strong>
+      <button id="coopHudCopy" class="hud-button" type="button">KOPÍROVAT</button>
+      <button id="adminMenuButton" class="hud-button" type="button" hidden>ADMIN</button>
+    </aside>
+
+    <div id="siteDialog" role="dialog" aria-modal="true" aria-labelledby="siteDialogTitleText" data-transient="false" hidden>
+      <section class="madness-window">
+        <header class="madness-window-header">
+          <span id="siteDialogTitleText">ONLINE CO-OP</span>
+          <button id="siteDialogClose" type="button" aria-label="Zavřít">×</button>
+        </header>
+        <div id="siteDialogMessage"></div>
+        <div id="siteDialogForm"></div>
+        <footer id="siteDialogActions"></footer>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
