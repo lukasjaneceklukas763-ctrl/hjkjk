@@ -31,15 +31,8 @@ Poznámka:
 Ochrana je lehká a klientská. Bez vlastního autoritativního herního serveru nejde zaručit plnou ochranu proti upravenému klientovi.
 
 
-Lukamer admin spelly:
-- pouze přesný Arena nick Lukamer
-- v ADMIN menu vyber Evil-doer, Dr. Christoff nebo Auditor / Phobos · MAGIC
-- F6 = SPELL 1 / exploze před postavou
-- F7 = SPELL 2 / energetický projektil
-- spelly jsou synchronizované oběma klientům
-- používají původní herní castSpell a magic efekty
-- SQL pro Supabase není potřeba
-
-Technická poznámka k postavám:
-- Evil-doer používá vestavěný profil jesus1, který obsahuje původní magic systém.
-- Auditor používá dostupný profil phobos a admin hook mu zapne stejný původní magic systém.
+STABILITY FIX 23. 6. 2026:
+- odstraněn experimentální spell hook, který zastavoval hlavní smyčku SWF
+- nová cache verze a oddělený protokol místností
+- admin výběr postavy zůstává aktivní
+- spelly jsou v této stabilní verzi dočasně vypnuté

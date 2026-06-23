@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const ROOM_PREFIX = "madness-nexus-true-coop-v12-admin-spells";
+  const ROOM_PREFIX = "madness-nexus-true-coop-v13-stable-admin";
   const GAME_WIDTH = 850;
   const GAME_HEIGHT = 530;
   const INPUT_TIMEOUT_MS = 800;
@@ -77,12 +77,6 @@
     deliveredAppearanceVersion: 0,
     adminPresetQueue: "",
     adminPresetApplied: "",
-    adminSpellQueue: 0,
-    adminSpellQueueAt: 0,
-    adminSpellLastCastAt: 0,
-    remoteSpellQueue: 0,
-    remoteSpellQueueAt: 0,
-    remoteSpellPreset: "",
 
     localProfile: null,
     localProfileSignature: "",
@@ -330,7 +324,7 @@
     ["agent", "Agent"], ["agent2", "Agent Mk1"], ["agent3", "Agent Mk0"],
     ["mag", "Mag Agent"], ["fatboy", "Fatboy"], ["fatman", "Fatman"],
     ["hank", "Hank"], ["sanford", "Sanford"], ["deimos", "Deimos"],
-    ["jesus", "Jesus"], ["jesus1", "Evil-doer · MAGIC"], ["jesus2", "Dr. Christoff · MAGIC"],
+    ["jesus", "Jesus"], ["jesus1", "Jesus – forma 1"], ["jesus2", "Dr. Christoff"],
     ["tricky", "Tricky"], ["tricky2", "Dr. Hofnarr"], ["blockhead", "Blockhead"],
     ["swain", "The Swain"], ["krinkels", "Lukamer"], ["cheshyre", "Cheshyre"], ["luis", "Luis"],
     ["arena", "Arena Player"], ["arenatest", "Arena Test"], ["arena_merc", "Mercenary"],
@@ -338,49 +332,11 @@
     ["zombie_yellow", "Yellow Zombie"], ["zombie_agent3", "Zombie Agent Mk0"],
     ["zombie_fatboy", "Zombie G03LM"], ["zombie_riot", "Zombie Riot"],
     ["abom", "Abomination"], ["patient", "Patient"], ["experiment", "Experiment"],
-    ["riot", "Riot Agent"], ["mag2", "MAG Agent Mk2"], ["phobos", "Auditor / Phobos · MAGIC"]
+    ["riot", "Riot Agent"], ["mag2", "MAG Agent Mk2"], ["phobos", "Phobos"]
   ];
-  const ADMIN_MAGIC_PRESETS = new Set(["jesus1", "jesus2", "phobos"]);
-  const ADMIN_SPELL_COOLDOWNS = { 1: 900, 2: 1500 };
 
   function isLukamerAdmin() {
     return state.localNick === ADMIN_NICK;
-  }
-
-  function adminMagicEnabled() {
-    return isLukamerAdmin() && ADMIN_MAGIC_PRESETS.has(state.adminPresetApplied);
-  }
-
-  function queueAdminSpell(level) {
-    const spell = Math.floor(Number(level));
-    if (!isLukamerAdmin()) return false;
-    if (![1, 2].includes(spell)) return false;
-    if (!ADMIN_MAGIC_PRESETS.has(state.adminPresetApplied)) {
-      showSiteDialog("Nejdřív v ADMIN menu vyber Evil-doer, Dr. Christoff nebo Auditor / Phobos.", "warn", { transient: false });
-      return false;
-    }
-    if (!state.arenaLaunched) {
-      showSiteDialog("Spelly lze použít až po spuštění arény.", "warn", { transient: false });
-      return false;
-    }
-    const now = Date.now();
-    const cooldown = ADMIN_SPELL_COOLDOWNS[spell] || 1000;
-    if (now - state.adminSpellLastCastAt < cooldown) {
-      showSiteDialog("SPELL SE JEŠTĚ NABÍJÍ", "warn", { transient: true, duration: 900 });
-      return false;
-    }
-    state.adminSpellLastCastAt = now;
-    state.adminSpellQueue = spell;
-    state.adminSpellQueueAt = now;
-    sendControlPacket({
-      type: "admin_spell",
-      spell,
-      preset: state.adminPresetApplied,
-      actorRole: state.role,
-      castAt: now
-    });
-    showSiteDialog(spell === 1 ? "SPELL 1 · EXPLOZE" : "SPELL 2 · ENERGETICKÝ PROJEKTIL", "ok", { transient: true, duration: 900 });
-    return true;
   }
 
   function updateArenaCopyright() {
@@ -497,7 +453,7 @@
     if (!isLukamerAdmin()) return;
     openGameDialog({
       title: "LUKAMER ADMIN",
-      message: "Vyber postavu. Evil-doer, Dr. Christoff a Auditor / Phobos mají admin spelly F6 a F7.",
+      message: "Vyber přednastavenou postavu. Změna se použije na tvoji vlastní postavu a synchronizuje se spoluhráči.",
       kind: "admin",
       build(form) {
         const label = document.createElement("label");
@@ -525,14 +481,10 @@
             if (!ADMIN_PRESETS.some(([value]) => value === preset)) return;
             state.adminPresetQueue = preset;
             state.adminPresetApplied = preset;
-            state.adminSpellQueue = 0;
-            state.remoteSpellQueue = 0;
             closeSiteDialog();
             showSiteDialog(`ADMIN · POSTAVA ${select.options[select.selectedIndex]?.textContent || preset} PŘIPRAVENA`, "ok", { transient: true, duration: 1600 });
           }
         },
-        { label: "SPELL 1 · EXPLOZE (F6)", variant: "danger", onClick: () => { closeSiteDialog(); queueAdminSpell(1); } },
-        { label: "SPELL 2 · PROJEKTIL (F7)", variant: "danger", onClick: () => { closeSiteDialog(); queueAdminSpell(2); } },
         { label: "ZAVŘÍT", onClick: closeSiteDialog }
       ]
     });
@@ -672,12 +624,6 @@
     state.deliveredAppearanceVersion = 0;
     state.adminPresetQueue = "";
     state.adminPresetApplied = "";
-    state.adminSpellQueue = 0;
-    state.adminSpellQueueAt = 0;
-    state.adminSpellLastCastAt = 0;
-    state.remoteSpellQueue = 0;
-    state.remoteSpellQueueAt = 0;
-    state.remoteSpellPreset = "";
     state.localProfile = null;
     state.localProfileSignature = "";
     state.remoteProfile = null;
@@ -1230,17 +1176,6 @@
         armHostArenaLaunch();
         return;
 
-      case "admin_spell": {
-        const spell = Math.floor(Number(packet.spell));
-        const preset = String(packet.preset || "");
-        if (state.remoteNick !== ADMIN_NICK) return;
-        if (![1, 2].includes(spell) || !ADMIN_MAGIC_PRESETS.has(preset)) return;
-        state.remoteSpellQueue = spell;
-        state.remoteSpellQueueAt = Date.now();
-        state.remoteSpellPreset = preset;
-        return;
-      }
-
       case "profile_update": {
         const incoming = normalizeProfile(packet.profile);
         if (state.role === "host") {
@@ -1662,30 +1597,6 @@
     return preset;
   };
 
-  window.madnessAdminGetSpell = function madnessAdminGetSpell(characterName) {
-    const name = sanitizeNick(characterName, "");
-    const now = Date.now();
-    if (name && name === state.localNick && adminMagicEnabled() && state.adminSpellQueue) {
-      if (now - state.adminSpellQueueAt > 4000) {
-        state.adminSpellQueue = 0;
-        return null;
-      }
-      const spell = state.adminSpellQueue;
-      state.adminSpellQueue = 0;
-      return spell;
-    }
-    if (name && name === state.remoteNick && state.remoteNick === ADMIN_NICK && state.remoteSpellQueue) {
-      if (now - state.remoteSpellQueueAt > 6000) {
-        state.remoteSpellQueue = 0;
-        return null;
-      }
-      const spell = state.remoteSpellQueue;
-      state.remoteSpellQueue = 0;
-      return spell;
-    }
-    return null;
-  };
-
   window.madnessCoopGetInput = function madnessCoopGetInput() {
     if (!state.role || performance.now() - state.remoteInputAt > INPUT_TIMEOUT_MS) return blankInput();
     return state.remoteInput;
@@ -1947,14 +1858,6 @@
       if (event.code === "F2" && isLukamerAdmin()) {
         event.preventDefault();
         openAdminMenu();
-      }
-      if (!event.repeat && event.code === "F6" && isLukamerAdmin()) {
-        event.preventDefault();
-        queueAdminSpell(1);
-      }
-      if (!event.repeat && event.code === "F7" && isLukamerAdmin()) {
-        event.preventDefault();
-        queueAdminSpell(2);
       }
     });
     updateCoopHud();
